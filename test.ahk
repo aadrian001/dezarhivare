@@ -11,13 +11,54 @@ global query := ""
 global ButtonConfig  
 global queryGui
 global iniFile := A_MyDocuments  . "\archivedb_config.ini" 
+global updateUrl := "https://raw.githubusercontent.com/aadrian001/dezarhivare/refs/heads/main/test.ahk" ; Replace with your raw file URL on GitHub.
+
+AutoUpdate(updateUrl)
+{
+    localScript := A_ScriptFullPath
+    tmpFile := A_Temp . "\updated_script.ahk"
+    
+    ; Create an HTTP request object
+    http := ComObject("WinHttp.WinHttpRequest.5.1")
+    try {
+        http.Open("GET", updateUrl, false)
+        http.Send()
+        
+        ; Check if the response is successful
+        if (http.Status != 200) {
+            MsgBox("Failed to download update. HTTP Status: " http.Status)
+            return
+        }
+        
+        ; Write the response text to a temporary file
+        FileDelete(tmpFile)  ; Ensure the temp file doesn't already exist
+        FileAppend(http.ResponseText, tmpFile)
+    } catch {
+        MsgBox("Error during update check. Unable to download the update.")
+        return
+    }
+
+    ; Verify if the file exists and is valid
+    if (FileExist(tmpFile)) {
+        FileDelete(localScript)  ; Delete the current script
+        FileMove(tmpFile, localScript)  ; Replace with the new script
+        MsgBox("Update applied. Restarting script...")
+        Run(localScript)  ; Restart the script
+        ExitApp()
+    } else {
+        MsgBox("Update failed: Unable to save the updated script.")
+    }
+}
+
+; Check for updates at the start of the script
+AutoUpdate(updateUrl)
 
 if !FileExist(iniFile)
-    {
-        IniWrite("ROTM2DB03", iniFile, "Database", "DataSource")  
-        IniWrite("sensordata_new", iniFile, "Database", "InitialCatalog")
-        IniWrite("SSPI", iniFile, "Database", "IntegratedSecurity")
-    }
+{
+    IniWrite("ROTM2DB03", iniFile, "Database", "DataSource")  
+    IniWrite("sensordata_new", iniFile, "Database", "InitialCatalog")
+    IniWrite("SSPI", iniFile, "Database", "IntegratedSecurity")
+}
 
 if A_LineFile = A_ScriptFullPath && !A_IsCompiled
 {
@@ -60,6 +101,7 @@ CloseLUFinder()
     ButtonSA.Enabled := true
     dbGui.Destroy()
 }
+
 OpenLUFinder()
 {   
     global ButtonSA, dbGui, query, ButtonConfig, ButtonSQL
