@@ -449,7 +449,10 @@ FormatBarcodes(barcodes)
 CheckForUpdates()
 {
     global githubScriptUrl, tempFilePath, currentScriptContent, latestScriptContent
+
+    ; Ensure 'currentScriptContent' is initialized as an empty string
     currentScriptContent := ""
+
     Try
     {
         ; Create a COM object to download the file using WinHttpRequest
@@ -472,22 +475,24 @@ CheckForUpdates()
             Return
         }
     }
-    Catch 
+    Catch
     {
         MsgBox("An error occurred while downloading the script: ")
         Return
     }
 
-    ; Read the current script content into 'currentScriptContent'
-    currentScriptContent := FileRead(A_ScriptFullPath) 
+    ; Read the current script content using FileRead
+    currentScriptContent := FileRead(A_ScriptFullPath)  ; This reads the content of the current script itself
 
-    ; If the downloaded script differs from the current one, update it
+    ; Ensure that the variable is being compared only if the content is actually different
     If (latestScriptContent != currentScriptContent)
     {
         MsgBox("An update is available. Replacing the current script...")
 
-        ; Overwrite the current script with the latest version
-        FileCopy(tempFilePath, A_ScriptFullPath, 1)
+        ; Overwrite the current script with the latest version from the GitHub repository
+        FileDelete(A_ScriptFullPath)  ; Delete the current script
+        FileAppend(latestScriptContent, A_ScriptFullPath)  ; Save the new script content
+
         MsgBox("The script has been updated. Restarting...")
 
         ; Restart the updated script
