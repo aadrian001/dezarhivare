@@ -239,7 +239,7 @@ PerformEdgeActions()
 
         activeTabTitle := GetActiveTabTitle()
 
-        if !RegExMatch(activeTabTitle, "Archive - SAP Manufacturing Execution SAP SE( and \d+ more pages?)? - Work - Microsoft​ Edge")
+        if !RegExMatch(activeTabTitle, "Archive - SAP Manufacturing Execution SAP SE( and \d+ more pages?)? - Work - Microsoft? Edge")
         {
             SoundPlay("C:\Windows\Media\Windows Foreground.wav", "Async")
             MsgBox("The active tab is not Archiving activity. Please open the correct TAB.", "ERROR!")
@@ -445,7 +445,6 @@ FormatBarcodes(barcodes)
     Sleep(1500)
     Tooltip("") 
 }
-
 CheckForUpdates()
 {
     global githubScriptUrl, tempFilePath, currentScriptContent, latestScriptContent
@@ -477,7 +476,14 @@ CheckForUpdates()
     }
     Catch
     {
-        MsgBox("An error occurred while downloading the script: ")
+        MsgBox("An error occurred while downloading the script.")
+        Return
+    }
+
+    ; Check if the script was actually downloaded
+    If (latestScriptContent = "")
+    {
+        MsgBox("Downloaded content is empty. Check the URL or network connection.")
         Return
     }
 
@@ -495,7 +501,7 @@ CheckForUpdates()
 
         MsgBox("The script has been updated. Restarting...")
 
-        ; Restart the updated script
+        ; Force restart by running the updated script
         Run(A_ScriptFullPath)
         ExitApp
     }
@@ -504,7 +510,5 @@ CheckForUpdates()
         MsgBox("You are using the latest version of the script.")
     }
 }
-
-
 
 ^q::ExitApp
