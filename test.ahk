@@ -11,46 +11,8 @@ global query := ""
 global ButtonConfig  
 global queryGui
 global iniFile := A_MyDocuments  . "\archivedb_config.ini" 
-global updateUrl := "https://raw.githubusercontent.com/aadrian001/dezarhivare/refs/heads/main/test.ahk" ; Replace with your raw file URL on GitHub.
-
-AutoUpdate(updateUrl)
-{
-    localScript := A_ScriptFullPath
-    tmpFile := A_Temp . "\updated_script.ahk"
-
-    http := ComObject("WinHttp.WinHttpRequest.5.1")
-    try {
-        http.Open("GET", updateUrl, false)
-        http.Send()
-
-        ; Debug the HTTP response
-        MsgBox("HTTP Status: " http.Status "`nResponseText: " http.ResponseText)
-
-        if (http.Status != 200) {
-            MsgBox("Failed to download update. HTTP Status: " http.Status)
-            return
-        }
-
-        FileDelete(tmpFile)
-        FileAppend(http.ResponseText, tmpFile)
-    } catch {
-        MsgBox("Error during update check. Unable to download the update.")
-        return
-    }
-
-    if (FileExist(tmpFile)) {
-        FileDelete(localScript)
-        FileMove(tmpFile, localScript)
-        MsgBox("Update applied. Restarting script...")
-        Run(localScript)
-        ExitApp()
-    } else {
-        MsgBox("Update failed: Unable to save the updated script.")
-    }
-}
-
-; Check for updates at the start of the script
-AutoUpdate(updateUrl)
+githubScriptUrl := "https://raw.githubusercontent.com/aadrian001/dezarhivare/refs/heads/main/test.ahk"  ; Replace with your actual GitHub URL
+tempFilePath := A_Temp . "\temp-script.ahk"
 
 if !FileExist(iniFile)
 {
@@ -74,7 +36,6 @@ Constructor()
     ButtonLU := myGui.Add("Button", "x24 y155 w157 h56 Center", "&Find Archived LU")
     Edit1 := myGui.Add("Edit", "x24 y48 w156 h21")
     myGui.Add("Text", "x0 y16 w204 h23 +0x200 Center", "Number of SFCs to be unarchived:")
-    
     myGui.Add("Text", "x5 y215 w204 h23 +0x200 Left", "Select speed:")
     global Fast := myGui.Add("Radio", "x24 y240", "Fast (1200ms)")
     global Medium := myGui.Add("Radio", "x24 y260", "Medium (3000ms)")
@@ -82,6 +43,8 @@ Constructor()
     myGui.Add("Text", "x5 y300 w204 h23 +0x200 Left", "Pause: CTRL + P")
     myGui.Add("Text", "x5 y320 w204 h23 +0x200 Left", "Quit: CTRL + Q")
     Medium.Value := true
+    ButtonCheckUpdate := myGui.Add("Button", "x24 y320 w157 h56 Center", "&Check for Updates")
+    ButtonCheckUpdate.OnEvent("Click", (*) => CheckForUpdates())  
     ButtonSA.OnEvent("Click", (*) => StartUnarchiving(Edit1.Value))
     ButtonLU.OnEvent("Click", (*) => OpenLUFinder())
     Edit1.OnEvent("Change", OnEventHandler)
@@ -94,6 +57,8 @@ Constructor()
     }
     return myGui
 }
+
+
 CloseLUFinder()
 {
     global ButtonSA, dbGui
@@ -480,5 +445,61 @@ FormatBarcodes(barcodes)
     Sleep(1500)
     Tooltip("") 
 }
+
+CheckForUpdates()
+{
+    global githubScriptUrl, tempFilePath, currentScriptContent, latestScriptContent
+    currentScriptContent := ""
+    Try
+    {
+        ; Create a COM object to download the file using WinHttpRequest
+        http := ComObject("WinHttp.WinHttpRequest.5.1")
+        http.Open("GET", githubScriptUrl, false)  ; Use GET method to fetch the file
+        http.Send()  ; Send the request
+
+        ; Check if the request was successful
+        If (http.Status = 200)
+        {
+            ; Save the downloaded content to a temporary file
+            FileAppend(http.ResponseText, tempFilePath)
+
+            ; Now, assign the downloaded content to 'latestScriptContent'
+            latestScriptContent := http.ResponseText
+        }
+        Else
+        {
+            MsgBox("Failed to download the script. Status: " . http.Status)
+            Return
+        }
+    }
+    Catch 
+    {
+        MsgBox("An error occurred while downloading the script: ")
+        Return
+    }
+
+    ; Read the current script content into 'currentScriptContent'
+    currentScriptContent := FileRead(A_ScriptFullPath) 
+
+    ; If the downloaded script differs from the current one, update it
+    If (latestScriptContent != currentScriptContent)
+    {
+        MsgBox("An update is available. Replacing the current script...")
+
+        ; Overwrite the current script with the latest version
+        FileCopy(tempFilePath, A_ScriptFullPath, 1)
+        MsgBox("The script has been updated. Restarting...")
+
+        ; Restart the updated script
+        Run(A_ScriptFullPath)
+        ExitApp
+    }
+    Else
+    {
+        MsgBox("You are using the latest version of the script.")
+    }
+}
+
+
 
 ^q::ExitApp
