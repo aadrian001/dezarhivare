@@ -1,5 +1,5 @@
 #Requires AutoHotkey v2.0
-
+; testez ceva
 global Counter := 0
 global SleepTime := 85
 global LongSleepTime := 2500
