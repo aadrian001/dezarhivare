@@ -17,33 +17,32 @@ AutoUpdate(updateUrl)
 {
     localScript := A_ScriptFullPath
     tmpFile := A_Temp . "\updated_script.ahk"
-    
-    ; Create an HTTP request object
+
     http := ComObject("WinHttp.WinHttpRequest.5.1")
     try {
         http.Open("GET", updateUrl, false)
         http.Send()
-        
-        ; Check if the response is successful
+
+        ; Debug the HTTP response
+        MsgBox("HTTP Status: " http.Status "`nResponseText: " http.ResponseText)
+
         if (http.Status != 200) {
             MsgBox("Failed to download update. HTTP Status: " http.Status)
             return
         }
-        
-        ; Write the response text to a temporary file
-        FileDelete(tmpFile)  ; Ensure the temp file doesn't already exist
+
+        FileDelete(tmpFile)
         FileAppend(http.ResponseText, tmpFile)
     } catch {
         MsgBox("Error during update check. Unable to download the update.")
         return
     }
 
-    ; Verify if the file exists and is valid
     if (FileExist(tmpFile)) {
-        FileDelete(localScript)  ; Delete the current script
-        FileMove(tmpFile, localScript)  ; Replace with the new script
+        FileDelete(localScript)
+        FileMove(tmpFile, localScript)
         MsgBox("Update applied. Restarting script...")
-        Run(localScript)  ; Restart the script
+        Run(localScript)
         ExitApp()
     } else {
         MsgBox("Update failed: Unable to save the updated script.")
